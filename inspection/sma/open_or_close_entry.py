@@ -10,6 +10,9 @@ from lib.check_order import check_order
 from lib.records import records
 from lib.backtest import backtest
 
+from sma.lib.judge_open_signal import judge_open_signal
+from sma.lib.judge_close_signal import judge_close_signal
+
 import requests
 from datetime import datetime
 import time
@@ -18,38 +21,17 @@ import pandas as pd
 
 #-----設定項目
 
-chart_sec = 60    # n分足を使用
-ma = 1440         # 過去chart_sec*ｎ足の移動平均線
+chart_sec = 240    # n分足を使用
+ma = 5         # 過去chart_sec*ｎ足の移動平均線
+ma_buffer = 50 # 移動平均線のバッファ
+hige_buffer = 50 # ひげが長い場合に売買しないためのバッファ
 wait = 0            # ループの待機時間
 lot = 1             # BTCの注文枚数
 slippage = 0.001    # 手数料・スリッページ
 
-# 売買判定する関数
-def judge_open_signal( data ):
-
-	# 移動平均線よりも下に位置してる
-	if data["open_price"] < data["ma"]:
-		# 移動平均線を上抜ける
-		if data["close_price"] > data["ma"]:
-			return {
-				"side" : "BUY",
-				"price" : data["close_price"]
-			}
-
-	# 移動平均線よりも上に位置してる
-	if data["open_price"] > data["ma"]:
-		# 移動平均線を下抜ける
-		if data["close_price"] < data["ma"]:
-			return {
-				"side" : "SELL",
-				"price" : data["close_price"]
-			}
-	
-	return {"side" : None , "price":0}
-
 # 判定してエントリー注文を出す関数
 def entry_signal( data, flag ):
-	signal = judge_open_signal( data )
+	signal = judge_open_signal( data, ma_buffer,hige_buffer )
 	if signal["side"] == "BUY":
 		flag["records"]["log"].append("移動平均線を上抜けました、{0}$で買いを入れます\n".format(signal["price"]))
 
@@ -69,26 +51,6 @@ def entry_signal( data, flag ):
 		flag["order"]["price"] = round(data["close_price"] * lot)
 
 	return flag
-
-
-def judge_close_signal( data, flag ):
-	# 買いのポジションが入ってる
-	if flag["position"]["side"] == "BUY":
-		# ろうそく足が赤
-		if data["open_price"] > data["close_price"]:
-			return {
-				"side" : "SELL",
-				"price" : data["close_price"]
-			}
-	
-	# 売りのポジションが入ってる
-	if flag["position"]["side"] == "SELL":
-		# ろうそく足が緑
-		if data["open_price"] < data["close_price"]:
-			return {
-				"side" : "BUY",
-				"price" : data["close_price"]
-			}
 
 # 手仕舞いのシグナルが出たら決済の成行注文を出す関数
 def close_position( data,flag ):
@@ -122,10 +84,9 @@ def close_position( data,flag ):
 
 def add_ma(price):
 	df = pd.DataFrame(price)
-	df["ma"] = df["close_price"].rolling(window=int(ma/chart_sec)).mean()
+	df["ma"] = df["close_price"].rolling(window=ma).mean()
 	
 	return df.to_dict(orient='records')
-
 
 # ここからメイン処理
 
@@ -185,7 +146,7 @@ i = 0
 while i < len(price):
 
 	# 過去〇〇足分の安値・高値データを準備する
-	if i < int(ma/chart_sec):
+	if i < ma:
 		flag = log_price(price[i],flag)
 		time.sleep(wait)
 		i += 1

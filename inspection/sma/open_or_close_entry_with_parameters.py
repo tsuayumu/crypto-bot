@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from sma.lib.judge_open_signal import judge_open_signal
+from sma.lib.judge_close_signal import judge_close_signal
+
 #-----設定項目
 
 wait = 0            # ループの待機時間
@@ -16,35 +19,14 @@ slippage = 0.001    # 手数料・スリッページ
 # バックテストのパラメーター設定
 #---------------------------------------------------------------------------------------------
 chart_sec_list  = [ 5, 15, 60, 120, 240, 720, 1440, 2880 ] 
-ma_list = [1440 * 5,1440 * 10,1440 * 20,1440 * 50,1440 * 100,1440 * 200]
+ma_list = [5,10,20,50,100,200]
+ma_buffer_list = [0, 50, 100, 200, 400] # 移動平均線のバッファ
+hige_buffer_list = [10,25,50,100,200,300,100000] # ひげが長い場合に売買しないためのバッファ
 #---------------------------------------------------------------------------------------------
 
-# 売買判定する関数
-def judge_open_signal( data ):
-
-	# 移動平均線よりも下に位置してる
-	if data["open_price"] < data["ma"]:
-		# 移動平均線を上抜ける
-		if data["close_price"] > data["ma"]:
-			return {
-				"side" : "BUY",
-				"price" : data["close_price"]
-			}
-
-	# 移動平均線よりも上に位置してる
-	if data["open_price"] > data["ma"]:
-		# 移動平均線を下抜ける
-		if data["close_price"] < data["ma"]:
-			return {
-				"side" : "SELL",
-				"price" : data["close_price"]
-			}
-	
-	return {"side" : None , "price":0}
-
 # 判定してエントリー注文を出す関数
-def entry_signal( data, flag ):
-	signal = judge_open_signal( data )
+def entry_signal( data, flag, ma_buffer,hige_buffer ):
+	signal = judge_open_signal( data,ma_buffer,hige_buffer )
 	if signal["side"] == "BUY":
 		# ここに買い注文のコードを入れる
 		
@@ -77,26 +59,6 @@ def check_order( flag ):
 	flag["position"]["price"] = flag["order"]["price"]
 	
 	return flag
-
-
-def judge_close_signal( data, flag ):
-	# 買いのポジションが入ってる
-	if flag["position"]["side"] == "BUY":
-		# ろうそく足が赤
-		if data["open_price"] < data["close_price"]:
-			return {
-				"side" : "SELL",
-				"price" : data["close_price"]
-			}
-	
-	# 売りのポジションが入ってる
-	if flag["position"]["side"] == "SELL":
-		# ろうそく足が緑
-		if data["open_price"] > data["close_price"]:
-			return {
-				"side" : "BUY",
-				"price" : data["close_price"]
-			}
 
 # 手仕舞いのシグナルが出たら決済の成行注文を出す関数
 def close_position( data,flag ):
@@ -156,8 +118,7 @@ def records(flag,data):
 	return flag
 
 # バックテストの集計用の関数
-def backtest(flag):
-	
+def backtest(flag):	
 	# 成績を記録したpandas DataFrameを作成
 	records = pd.DataFrame({
 		"Date"     :  pd.to_datetime(flag["records"]["date"]),
@@ -213,7 +174,7 @@ def backtest(flag):
 
 def add_ma(price, chart_sec, ma):
 	df = pd.DataFrame(price)
-	df["ma"] = df["close_price"].rolling(window=int(ma/chart_sec)).mean()
+	df["ma"] = df["close_price"].rolling(window=ma).mean()
 	
 	return df.to_dict(orient='records')
 
@@ -243,6 +204,8 @@ for chart_sec in chart_sec_list:
 # テストごとの各パラメーターの組み合わせと結果を記録する配列を準備
 param_chart_sec = []
 param_ma = []
+param_ma_buffer = []
+param_hige_buffer = []
 
 result_count = []
 result_winRate = []
@@ -252,11 +215,13 @@ result_profitFactor = []
 result_gross = []
 
 # 総当たりのためのfor文の準備
-combinations = [(chart_sec, ma)
+combinations = [(chart_sec, ma, ma_buffer, hige_buffer)
 	for chart_sec in chart_sec_list
-	for ma in ma_list]
+	for ma in ma_list
+	for ma_buffer in ma_buffer_list
+	for hige_buffer in hige_buffer_list]
 
-for chart_sec, ma in combinations:
+for chart_sec, ma, ma_buffer, hige_buffer in combinations:
 
 	price = price_list[ chart_sec ][ ma ]
 	i = 0
@@ -288,7 +253,7 @@ for chart_sec, ma in combinations:
 	while i < len(price):
 
 		# 過去〇〇足分の安値・高値データを準備する
-		if i < int(ma/chart_sec):
+		if i < ma:
 			time.sleep(wait)
 			i += 1
 			continue
@@ -301,7 +266,7 @@ for chart_sec, ma in combinations:
 		if flag["position"]["exist"]:
 			flag = close_position( data,flag )
 		else:
-			flag = entry_signal( data, flag )
+			flag = entry_signal( data, flag, ma_buffer, hige_buffer )
 
 		i += 1
 		time.sleep(wait)
@@ -312,15 +277,24 @@ for chart_sec, ma in combinations:
 	print("開始時点 : " + str(price[0]["close_time_dt"]))
 	print("終了時点 : " + str(price[-1]["close_time_dt"]))
 	print("時間軸       : " + str(int(chart_sec)) + "分足で検証")
-	print("移動平均線       : " + str(int(ma/1440)) + "日")
+	print("移動平均線       : " + str(ma) + "ma")
+	print("移動平均線バッファ       : " + str(ma_buffer) + "ma_buffer")
+	print("ひげのバッファ       : " + str(hige_buffer) + "hige_buffer")
 	print(str(len(price)) + "件のローソク足データで検証")
 	print("--------------------------")
+
+	# 取引が少なかったらスキップ
+	if len(flag["records"]["date"]) < 19:
+		i += 1
+		continue
 
 	result = backtest( flag )
 
 	# 今回のループで使ったパラメータの組み合わせを配列に記録する
 	param_chart_sec.append( chart_sec )
-	param_ma.append( int(ma/1440) )
+	param_ma.append( ma )
+	param_ma_buffer.append( ma_buffer )
+	param_hige_buffer.append( hige_buffer )
 
 	# 今回のループのバックテスト結果を配列に記録する
 	result_count.append( result["トレード回数"] )
@@ -334,6 +308,8 @@ for chart_sec, ma in combinations:
 df = pd.DataFrame({
 	"時間軸"        :  param_chart_sec,
 	"移動平均線"        :  param_ma,
+	"移動平均線バッファ"        :  param_ma_buffer,
+	"ひげバッファ"        :  param_hige_buffer,
 	"トレード回数"  :  result_count,
 	"勝率"          :  result_winRate,
 	"平均リターン"  :  result_returnRate,
@@ -343,7 +319,7 @@ df = pd.DataFrame({
 })
 
 # 列の順番を固定する
-df = df[[ "時間軸","移動平均線","トレード回数","勝率","平均リターン","ドローダウン","PF","最終損益"  ]]
+df = df[[ "時間軸","移動平均線","移動平均線バッファ","ひげバッファ","トレード回数","勝率","平均リターン","ドローダウン","PF","最終損益"  ]]
 
 # 最終結果をcsvファイルに出力
 df.to_csv("sma/log/result-{}.csv".format(datetime.now().strftime("%Y-%m-%d-%H-%M")) )
