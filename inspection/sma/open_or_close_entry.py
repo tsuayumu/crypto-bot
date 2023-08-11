@@ -21,17 +21,17 @@ import pandas as pd
 
 #-----設定項目
 
-chart_sec = 240    # n分足を使用
-ma = 5         # 過去chart_sec*ｎ足の移動平均線
+chart_sec = 120    # n分足を使用
+ma = 100         # 過去chart_sec*ｎ足の移動平均線
 ma_buffer = 50 # 移動平均線のバッファ
-hige_buffer = 50 # ひげが長い場合に売買しないためのバッファ
+hige_buffer = 300 # ひげが長い場合に売買しないためのバッファ
 wait = 0            # ループの待機時間
 lot = 1             # BTCの注文枚数
 slippage = 0.001    # 手数料・スリッページ
 
 # 判定してエントリー注文を出す関数
 def entry_signal( data, flag ):
-	signal = judge_open_signal( data, ma_buffer,hige_buffer )
+	signal = judge_open_signal( data, ma,ma_buffer,hige_buffer )
 	if signal["side"] == "BUY":
 		flag["records"]["log"].append("移動平均線を上抜けました、{0}$で買いを入れます\n".format(signal["price"]))
 
@@ -84,7 +84,12 @@ def close_position( data,flag ):
 
 def add_ma(price):
 	df = pd.DataFrame(price)
-	df["ma"] = df["close_price"].rolling(window=ma).mean()
+	df["5ma"] = df["close_price"].rolling(window=5).mean()
+	df["10ma"] = df["close_price"].rolling(window=10).mean()
+	df["20ma"] = df["close_price"].rolling(window=20).mean()
+	df["50ma"] = df["close_price"].rolling(window=50).mean()
+	df["100ma"] = df["close_price"].rolling(window=100).mean()
+	df["200ma"] = df["close_price"].rolling(window=200).mean()
 	
 	return df.to_dict(orient='records')
 
@@ -147,13 +152,13 @@ while i < len(price):
 
 	# 過去〇〇足分の安値・高値データを準備する
 	if i < ma:
-		flag = log_price(price[i],flag)
+		flag = log_price(price[i],flag, ma)
 		time.sleep(wait)
 		i += 1
 		continue
 	
 	data = price[i]
-	flag = log_price(data,flag)
+	flag = log_price(data,flag, ma)
 	
 	
 	if flag["order"]["exist"]:
