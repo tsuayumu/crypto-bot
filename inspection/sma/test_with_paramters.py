@@ -26,15 +26,10 @@ SLIPPAGE = 0.001    # 手数料・スリッページ
 
 # バックテストのパラメーター設定
 #---------------------------------------------------------------------------------------------
-chart_sec_list  = [ 5, 15, 60, 120, 240, 720, 1440, 2880 ] 
-ma_list = [5,10,20,50,100,200]
-ma_buffer_list = [0, 50, 100, 200, 400] # 移動平均線のバッファ
-hige_buffer_list = [10,25,50,100,200,300,100000] # ひげが長い場合に売買しないためのバッファ
-
-chart_sec_list  = [ 5 ] 
-ma_list = [5,10]
-ma_buffer_list = [0] # 移動平均線のバッファ
-hige_buffer_list = [10] # ひげが長い場合に売買しないためのバッファ
+chart_sec_list  = [ 5, 15, 60, 120, 240 ] 
+ma_list = [5,10,20,50]
+ma_buffer_list = [0, 50, 100] # 移動平均線のバッファ
+hige_buffer_list = [10,25,100,300,100000] # ひげが長い場合に売買しないためのバッファ
 #---------------------------------------------------------------------------------------------
 
 
@@ -124,4 +119,4 @@ df = pd.DataFrame(result_dataframe)
 df = df[ma_paramters.headers() + record.headers()]
 
 # 最終結果をcsvファイルに出力
-df.to_csv("log/result-{}.csv".format(datetime.now().strftime("%Y-%m-%d-%H-%M")) )
+df.to_csv("../../log/result-{}.csv".format(datetime.now().strftime("%Y-%m-%d-%H-%M")) )

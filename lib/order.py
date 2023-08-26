@@ -56,6 +56,7 @@ class Order:
     # 注文状況を確認して通っていたら以下を実行
     # 一定時間で注文が通っていなければキャンセルする
 
+    # 今は成行注文にするから強制的に注文が通ったことにしている
     if self.exist:
       self.exist = False
       self.count = 0
