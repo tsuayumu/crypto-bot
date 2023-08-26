@@ -98,15 +98,14 @@ get_price(
 while True:
 	time.sleep(60)
 
-	# 取りこぼしがあるかもなのでバッファを持つ
-	since = until - 60000 * 60
+	since = until
 	until = datetime.now()
 
 	try:
 		get_price(
 			file_path=FILE_PATH,
 			min='1m',
-			since=to_ms(since),
+			since=to_ms(since) - 60000 * 60, # 取りこぼしがあるかもなのでバッファを持つ
 			until=to_ms(until)
 		)
 	except:
