@@ -82,13 +82,15 @@ class Record:
     
     print("バックテストの結果")
     print("--------------------------")
-    print("買いエントリの成績")
-    print("--------------------------")
-    print("トレード回数     :  {}回".format(self.buy_count ))
-    print("勝率             :  {}％".format(round(self.buy_winning / self.buy_count * 100,1)))
-    print("平均リターン     :  {}％".format(round(np.average(self.buy_return),2)))
-    print("総損益           :  {}$".format( np.sum(self.buy_profit) ))
-    print("平均保有期間     :  {}足分".format( round(np.average(self.buy_holding_periods),1) ))
+
+    if self.buy_count > 0:
+      print("買いエントリの成績")
+      print("--------------------------")
+      print("トレード回数     :  {}回".format(self.buy_count ))
+      print("勝率             :  {}％".format(round(self.buy_winning / self.buy_count * 100,1)))
+      print("平均リターン     :  {}％".format(round(np.average(self.buy_return),2)))
+      print("総損益           :  {}$".format( np.sum(self.buy_profit) ))
+      print("平均保有期間     :  {}足分".format( round(np.average(self.buy_holding_periods),1) ))
     
     if self.sell_count > 0:
       print("--------------------------")
