@@ -10,7 +10,7 @@ import time
 import ndjson
 import pandas as pd
 
-START_TIME = datetime(2023, 8, 24)
+START_TIME = datetime(2022, 1, 1)
 FILE_PATH = 'candles.ndjson'
 
 def get_price(file_path="",min='1m', since=0, until=0):
