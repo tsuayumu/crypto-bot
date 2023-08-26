@@ -108,6 +108,7 @@ for chart_sec, ma, ma_buffer, hige_buffer in ma_paramters.combinations():
 	)
 
 	record.backtest()
+	record.reset()
 
 result_dataframe = ma_paramters.result()
 result_dataframe.update(record.result())

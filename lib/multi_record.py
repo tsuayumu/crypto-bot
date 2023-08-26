@@ -19,6 +19,14 @@ class MultiRecord:
     self.result_profitFactor = []
     self.result_gross = []
 
+  def reset(self):
+    self.date = []
+    self.profit = []
+    self.return_rate = []
+    self.side = []
+    self.holding_periods = []
+    self.slippage = []
+
 
   # 各トレードのパフォーマンスを記録する関数
   def add(self,position,candle,lot,slippage):
@@ -95,8 +103,8 @@ class MultiRecord:
     self.result_winRate.append(round(len(records[records.Profit>0]) / len(records) * 100,1))
     self.result_returnRate.append(round(records.Rate.mean(),2))
     self.result_drawdown.append(-1 * records.Drawdown.max())
-    self.result_profitFactor.append(records.Profit.sum())
-    self.result_gross.append(profit_factor)
+    self.result_profitFactor.append(profit_factor)
+    self.result_gross.append(records.Profit.sum())
 
   def result(self):
     return {
