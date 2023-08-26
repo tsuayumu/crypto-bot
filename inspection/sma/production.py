@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "/Users/tsuda_ayumu/Develop/crypto_bot/lib")
+sys.path.insert(0, "../../lib")
 
 from candles import Candles
 from candles_file import CandlesFile
@@ -14,7 +14,7 @@ from datetime import datetime
 import time
 
 SYMBOL = 'BTC/USDT'
-CANDLES_FILE_PATH = '../production_candle_data/btc_usdt.ndjson'
+CANDLES_FILE_PATH = '../../candles/candles.ndjson'
 
 # -----設定項目-----
 CHART_SEC = 60    # n分足を使用
@@ -31,8 +31,6 @@ record = Record()
 judge = MaJudge()
 
 while True:
-	CandlesFile(SYMBOL, CANDLES_FILE_PATH).save_latest_price()
-
 	candles = Candles(CANDLES_FILE_PATH, CHART_SEC)
 	candles.add_ma()
 

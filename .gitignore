@@ -1,0 +1,12 @@
+logic.txt
+memo.txt
+error.txt
+*.ndjson
+__pycache__
+log*
+test
+get_past_data
+candle_data
+donchain_break
+production_candle_data
+inspection/lib
